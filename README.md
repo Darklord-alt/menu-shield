@@ -9,11 +9,12 @@ Menu Shield is a small, privacy-minded proof of concept for restaurant-menu alle
 Requires Node.js 18 or newer. No package installation is required.
 
 ```powershell
-$env:OPENAI_API_KEY='your_key_here'
+Copy-Item .env.example .env
+# Open .env and replace "replace_me" with your OpenAI API key.
 npm start
 ```
 
-Then open [http://127.0.0.1:3000](http://127.0.0.1:3000). The key remains on the server and is never sent to the browser.
+Then open [http://127.0.0.1:3000](http://127.0.0.1:3000). The key remains on the server and is never sent to the browser. Restart the app after changing `.env`.
 
 Optionally set `OPENAI_MODEL` to a vision-capable Responses API model available to your account. The default is `gpt-5-mini`.
 

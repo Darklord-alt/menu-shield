@@ -20,6 +20,19 @@ var MIME_TYPES = {
   '.webp': 'image/webp'
 };
 
+function loadLocalEnv() {
+  var envPath = path.join(ROOT, '.env');
+  if (!fs.existsSync(envPath)) return;
+  fs.readFileSync(envPath, 'utf8').split(/\r?\n/).forEach(function (line) {
+    var match = line.match(/^\s*(?:export\s+)?([A-Z][A-Z0-9_]*)\s*=\s*(.*?)\s*$/);
+    if (!match || process.env[match[1]] !== undefined) return;
+    var value = match[2].replace(/^(['"])(.*)\1$/, '$2');
+    process.env[match[1]] = value;
+  });
+}
+
+loadLocalEnv();
+
 function send(response, status, body, contentType) {
   response.writeHead(status, {
     'Content-Type': contentType || 'application/json; charset=utf-8',

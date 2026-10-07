@@ -18,13 +18,14 @@ Node HTTP server
 ## Local run
 
 ```powershell
-$env:OPENAI_API_KEY='your_key_here'
+Copy-Item .env.example .env
+# Put your key in .env, then:
 npm start
 ```
 
 Open `http://127.0.0.1:3000`.
 
-The `OPENAI_MODEL` environment variable is optional. The default is `gpt-5-mini`; select a vision-capable Responses API model available to the account when overriding it.
+The server automatically reads a local `.env` file and never serves it to the browser. `OPENAI_MODEL` is optional. The default is `gpt-5-mini`; select a vision-capable Responses API model available to the account when overriding it.
 
 ## API contract
 
