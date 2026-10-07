@@ -5,6 +5,9 @@ var serverModule = require('../server');
 var createServer = serverModule.createServer;
 
 async function run() {
+  assert.throws(function () { serverModule.validateAnalysis({menu_title:'Menu', limitations:'Ask staff', dishes:[{name:'Pasta'}]}); }, /incomplete dish/);
+  assert.throws(function () { serverModule.parseAnalysis('{"dishes":['); });
+  assert.throws(function () { serverModule.validateAnalysis({menu_title:'Menu',limitations:'Ask staff',dishes:[{name:'Pasta',description:'cheese',uncertainty:'low',matches:[{allergen:'milk',evidence:'cheese',risk:'safe'}]}]}); }, /invalid allergen/);
   assert.deepEqual(serverModule.parseAnalysis('Here are the results:\n```json\n{"menu_title":"Sample","dishes":[],"limitations":"Confirm with staff."}\n```'), {
     menu_title: 'Sample', dishes: [], limitations: 'Confirm with staff.'
   });

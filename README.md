@@ -28,6 +28,10 @@ Run `npm start`, open the page, and click **Try the demo menu**. This demonstrat
 npm run check
 ```
 
+Run `npm test` for local regression checks. On Windows, `./test/live-scan.ps1` creates a readable three-dish menu in memory and sends it through the running app. This live check uses the configured provider and may consume API quota.
+
+Photo scans resize large uploads to 1600 pixels on the longest edge and allow up to two minutes for inference. NVIDIA requests use JSON output mode; malformed or truncated results are rejected. Successful extraction does not guarantee correct allergen identification—confirm ingredients with restaurant staff.
+
 ## Project documents
 
 - [Scope](scope.md)

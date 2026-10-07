@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var state = { image: null, allergens: [], result: null };
+  var state = { image: null, allergens: [], result: null, scanning: false };
   var DEMO_RESULT = {
     menu_title: 'Harbor & Hearth — Dinner',
     limitations: 'This demo uses a sample menu. In a real scan, confirm recipes, substitutions, fryer oil, and cross-contact procedures with restaurant staff.',
@@ -40,7 +40,7 @@
   }
 
   function renderScanButton() {
-    byId('scan-button').disabled = !state.image || !state.allergens.length;
+    byId('scan-button').disabled = state.scanning || !state.image || !state.allergens.length;
   }
 
   function setStatus(message, kind) {
@@ -65,12 +65,24 @@
     if (file.size > 8 * 1024 * 1024) { setStatus('Choose an image smaller than 8 MB.', 'error'); return; }
     var reader = new FileReader();
     reader.onload = function () {
-      state.image = reader.result;
-      byId('image-preview').src = reader.result;
+      var decoded = new Image();
+      decoded.onload = function () {
+      var scale = Math.min(1, 1600 / Math.max(decoded.width, decoded.height));
+      var canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(decoded.width * scale));
+      canvas.height = Math.max(1, Math.round(decoded.height * scale));
+      var context = canvas.getContext('2d');
+      context.fillStyle = '#fff'; context.fillRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(decoded, 0, 0, canvas.width, canvas.height);
+      state.image = canvas.toDataURL('image/jpeg', 0.9);
+      byId('image-preview').src = state.image;
       byId('image-preview').hidden = false;
       byId('upload-prompt').hidden = true;
       byId('remove-image').hidden = false;
       setStatus(''); renderScanButton();
+      };
+      decoded.onerror = function () { setStatus('This image could not be opened. Try a JPG or PNG.', 'error'); };
+      decoded.src = reader.result;
     };
     reader.readAsDataURL(file);
   }
@@ -100,10 +112,13 @@
   }
 
   async function scanMenu() {
-    if (!state.image || !state.allergens.length) return;
+    if (state.scanning || !state.image || !state.allergens.length) return;
+    state.scanning = true;
+    byId('results').hidden = true;
     var button = byId('scan-button');
     button.disabled = true; button.innerHTML = 'Reading menu <span class="spinner" aria-hidden="true"></span>';
-    setStatus('Scanning the menu text…');
+    setStatus('Scanning the menu text… This can take up to two minutes.');
+    var slowTimer = setTimeout(function () { setStatus('Still reading the photo… Large menus take longer. Keep this page open.'); }, 30000);
     try {
       var response = await fetch('/api/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ image: state.image, allergens: state.allergens }) });
       var payload = await response.json();
@@ -112,6 +127,7 @@
     } catch (error) {
       setStatus(error.message, 'error');
     } finally {
+      clearTimeout(slowTimer); state.scanning = false;
       button.textContent = 'Scan menu →'; renderScanButton();
     }
   }
