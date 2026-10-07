@@ -38,13 +38,14 @@
 
         <div class="step-card allergens-card">
           <div class="step-label"><span>02</span> Your allergens</div>
-          <p class="card-copy">Add ingredients you need to avoid. Nothing is saved after this browser session.</p>
+          <p class="card-copy">Select two or more allergens below, or type them separated by commas. Each selected allergen is included in your scan.</p>
           <form id="allergen-form" class="allergen-form">
             <label class="sr-only" for="allergen-input">Add an allergen</label>
-            <input id="allergen-input" maxlength="80" placeholder="e.g. peanuts" autocomplete="off">
+            <input id="allergen-input" maxlength="240" placeholder="e.g. peanuts, milk" autocomplete="off">
             <button type="submit">Add</button>
           </form>
           <div id="allergen-chips" class="chips" aria-live="polite"></div>
+          <p id="allergen-count" class="selection-note" aria-live="polite">No allergens selected</p>
           <div class="quick-add" aria-label="Common allergens">
             <span>Quick add</span>
             <button type="button" data-add="peanuts">Peanuts</button>
@@ -74,6 +75,12 @@
         <p id="results-limitations" class="results-note"></p>
         <div id="summary-bar" class="summary-bar"></div>
         <div id="dish-list" class="dish-list"></div>
+        <section class="staff-questions" aria-labelledby="staff-questions-title">
+          <h3 id="staff-questions-title">Questions to ask the staff</h3>
+          <p id="staff-introduction"></p>
+          <ul id="staff-question-list"></ul>
+          <p class="staff-reminder">Confirm the full recipe and preparation with the restaurant before ordering. Removing a topping does not necessarily remove an allergen.</p>
+        </section>
       </section>
 
       <footer>Made for the first question, not the final medical decision.</footer>

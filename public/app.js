@@ -21,6 +21,10 @@
   function riskClass(risk) { return risk === 'likely' ? 'risk-likely' : risk === 'possible' ? 'risk-possible' : 'risk-neutral'; }
 
   function renderAllergens() {
+    byId('allergen-count').textContent = state.allergens.length ? state.allergens.length + ' allergen' + (state.allergens.length === 1 ? '' : 's') + ' selected — all included in the scan' : 'No allergens selected';
+    document.querySelectorAll('[data-add]').forEach(function (button) {
+      button.setAttribute('aria-pressed', String(state.allergens.indexOf(button.dataset.add) !== -1));
+    });
     byId('allergen-chips').innerHTML = state.allergens.map(function (allergen) {
       return '<span class="chip">' + escapeHtml(titleCase(allergen)) + '<button type="button" data-remove="' + escapeHtml(allergen) + '" aria-label="Remove ' + escapeHtml(allergen) + '">×</button></span>';
     }).join('');
@@ -33,8 +37,10 @@
   }
 
   function addAllergen(value) {
-    var cleaned = String(value || '').trim().toLowerCase();
-    if (cleaned && state.allergens.indexOf(cleaned) === -1) state.allergens.push(cleaned);
+    String(value || '').split(/[,;\n]/).forEach(function (item) {
+      var cleaned = item.trim().toLowerCase();
+      if (cleaned && cleaned.length <= 80 && state.allergens.indexOf(cleaned) === -1 && state.allergens.length < 20) state.allergens.push(cleaned);
+    });
     byId('allergen-input').value = '';
     renderAllergens(); renderScanButton();
   }
@@ -93,7 +99,7 @@
     });
   }
 
-  function renderResult(result) {
+  function renderResult(result, scannedAllergens) {
     state.result = result;
     var dishes = Array.isArray(result.dishes) ? result.dishes : [];
     var flagged = dishes.filter(function (dish) { return relevantMatches(dish).length; });
@@ -107,23 +113,36 @@
       }).join('') : '<li class="clear"><span>No stated match</span><p>No requested allergen was identified in the readable description. This is not a safety guarantee.</p></li>';
       return '<article class="dish ' + (matches.length ? 'dish-flagged' : '') + '"><div class="dish-title"><div><h3>' + escapeHtml(dish.name) + '</h3><p>' + escapeHtml(dish.description || 'No description readable') + '</p></div><span class="uncertainty">Text confidence: ' + escapeHtml(dish.uncertainty || 'unknown') + '</span></div><ul class="match-list">' + matchHtml + '</ul></article>';
     }).join('') || '<p class="empty-result">No dishes could be read. Try a brighter, straighter photo of the menu.</p>';
+    var allergens = scannedAllergens || [];
+    var namedAllergens = allergens.map(titleCase).join(' and ');
+    byId('staff-introduction').textContent = 'Start with: “I need to avoid ' + (namedAllergens || 'these allergens') + '. Could you check with the kitchen before I order?”';
+    var questions = flagged.slice(0, 4).map(function (dish) {
+      var names = relevantMatches(dish).map(function (match) { return match.allergen; }).filter(function (name, index, list) { return list.indexOf(name) === index; });
+      return 'For ' + dish.name + ', can the kitchen confirm whether the full recipe contains ' + names.join(' or ') + ', including sauces, garnishes and substitutions?';
+    });
+    questions.push('Could you check ingredient labels for ' + (namedAllergens || 'my allergens') + ', including sauces, dressings and cooking oils?');
+    questions.push('Are utensils, preparation surfaces, grills or fryers shared with foods containing ' + (namedAllergens || 'my allergens') + '? How do you prevent cross-contact?');
+    questions.push('If a dish cannot be prepared to meet my allergy needs, can the chef suggest another option and confirm its ingredients and preparation?');
+    byId('staff-question-list').innerHTML = questions.map(function (question) { return '<li>' + escapeHtml(question) + '</li>'; }).join('');
     byId('results').hidden = false;
     byId('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   async function scanMenu() {
+    if (!state.scanning && byId('allergen-input').value.trim()) addAllergen(byId('allergen-input').value);
     if (state.scanning || !state.image || !state.allergens.length) return;
     state.scanning = true;
+    var scannedAllergens = state.allergens.slice();
     byId('results').hidden = true;
     var button = byId('scan-button');
     button.disabled = true; button.innerHTML = 'Reading menu <span class="spinner" aria-hidden="true"></span>';
     setStatus('Scanning the menu text… This can take up to two minutes.');
     var slowTimer = setTimeout(function () { setStatus('Still reading the photo… Large menus take longer. Keep this page open.'); }, 30000);
     try {
-      var response = await fetch('/api/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ image: state.image, allergens: state.allergens }) });
+      var response = await fetch('/api/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ image: state.image, allergens: scannedAllergens }) });
       var payload = await response.json();
       if (!response.ok) throw new Error(payload.error || 'The menu could not be scanned.');
-      renderResult(payload); setStatus('');
+      renderResult(payload, scannedAllergens); setStatus('');
     } catch (error) {
       setStatus(error.message, 'error');
     } finally {
@@ -133,13 +152,19 @@
   }
 
   byId('allergen-form').addEventListener('submit', function (event) { event.preventDefault(); addAllergen(byId('allergen-input').value); });
-  document.querySelectorAll('[data-add]').forEach(function (button) { button.addEventListener('click', function () { addAllergen(button.dataset.add); }); });
+  document.querySelectorAll('[data-add]').forEach(function (button) { button.addEventListener('click', function () {
+    if (state.allergens.indexOf(button.dataset.add) !== -1) {
+      state.allergens = state.allergens.filter(function (item) { return item !== button.dataset.add; });
+      renderAllergens(); renderScanButton();
+    } else addAllergen(button.dataset.add);
+  }); });
   byId('menu-image').addEventListener('change', function (event) { loadImage(event.target.files[0]); });
   byId('remove-image').addEventListener('click', clearImage);
   byId('scan-button').addEventListener('click', scanMenu);
-  byId('demo-button').addEventListener('click', function () { renderResult(DEMO_RESULT); setStatus('Showing sample results — no photo was uploaded.'); });
+  byId('demo-button').addEventListener('click', function () { renderResult(DEMO_RESULT, ['tree nuts', 'milk', 'wheat']); setStatus('Showing sample results — no photo was uploaded.'); });
   byId('new-scan').addEventListener('click', function () { byId('results').hidden = true; byId('menu-image').focus(); });
   byId('drop-zone').addEventListener('dragover', function (event) { event.preventDefault(); byId('drop-zone').classList.add('dragging'); });
   byId('drop-zone').addEventListener('dragleave', function () { byId('drop-zone').classList.remove('dragging'); });
   byId('drop-zone').addEventListener('drop', function (event) { event.preventDefault(); byId('drop-zone').classList.remove('dragging'); loadImage(event.dataTransfer.files[0]); });
+  renderAllergens();
 }());
