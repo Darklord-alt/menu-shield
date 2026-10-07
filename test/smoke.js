@@ -1,9 +1,14 @@
 'use strict';
 
 var assert = require('node:assert/strict');
-var createServer = require('../server').createServer;
+var serverModule = require('../server');
+var createServer = serverModule.createServer;
 
 async function run() {
+  assert.deepEqual(serverModule.parseAnalysis('Here are the results:\n```json\n{"menu_title":"Sample","dishes":[],"limitations":"Confirm with staff."}\n```'), {
+    menu_title: 'Sample', dishes: [], limitations: 'Confirm with staff.'
+  });
+
   var server = createServer();
   try {
     await new Promise(function (resolve) { server.listen(0, '127.0.0.1', resolve); });

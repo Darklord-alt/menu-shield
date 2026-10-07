@@ -136,7 +136,7 @@ function extractionPrompt(allergens) {
 }
 
 function nvidiaExtractionPrompt(allergens) {
-  return extractionPrompt(allergens) + ' Return exactly one valid JSON object with no Markdown, code fences, or commentary. It must match this JSON Schema: ' + JSON.stringify(schema());
+  return extractionPrompt(allergens) + ' Return exactly one valid JSON object with no Markdown, code fences, commentary, or thinking text. Keep evidence concise and include at most 25 readable dishes. It must match this JSON Schema: ' + JSON.stringify(schema());
 }
 
 function extractOutputText(responsePayload) {
@@ -159,7 +159,37 @@ function configuredProvider() {
 
 function parseAnalysis(text) {
   var cleaned = String(text || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
-  return JSON.parse(cleaned);
+  try {
+    return JSON.parse(cleaned);
+  } catch (error) {
+    var objectText = extractFirstJsonObject(cleaned);
+    if (!objectText) throw error;
+    return JSON.parse(objectText);
+  }
+}
+
+function extractFirstJsonObject(text) {
+  var start = text.indexOf('{');
+  if (start === -1) return '';
+  var depth = 0;
+  var inString = false;
+  var escaped = false;
+  for (var index = start; index < text.length; index += 1) {
+    var character = text[index];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (character === '\\') escaped = true;
+      else if (character === '"') inString = false;
+      continue;
+    }
+    if (character === '"') inString = true;
+    else if (character === '{') depth += 1;
+    else if (character === '}') {
+      depth -= 1;
+      if (depth === 0) return text.slice(start, index + 1);
+    }
+  }
+  return '';
 }
 
 async function analyzeWithOpenAI(image, allergens) {
@@ -234,6 +264,9 @@ async function analyzeWithNvidia(image, allergens) {
 
   var payload = JSON.parse(responseText);
   var content = payload.choices && payload.choices[0] && payload.choices[0].message && payload.choices[0].message.content;
+  if (Array.isArray(content)) {
+    content = content.map(function (part) { return typeof part === 'string' ? part : part && (part.text || part.content) || ''; }).join('\n');
+  }
   return parseAnalysis(content);
 }
 
@@ -314,4 +347,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { createServer: createServer };
+module.exports = { createServer: createServer, parseAnalysis: parseAnalysis };
