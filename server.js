@@ -8,6 +8,7 @@ var PORT = Number(process.env.PORT || 3000);
 var ROOT = __dirname;
 var PUBLIC_DIR = path.join(ROOT, 'public');
 var MAX_BODY_BYTES = 12 * 1024 * 1024;
+var REMOTE_TIMEOUT_MS = 60 * 1000;
 var MIME_TYPES = {
   '.css': 'text/css; charset=utf-8',
   '.html': 'text/html; charset=utf-8',
@@ -164,6 +165,7 @@ function parseAnalysis(text) {
 async function analyzeWithOpenAI(image, allergens) {
   var apiResponse = await fetch('https://api.openai.com/v1/responses', {
     method: 'POST',
+    signal: AbortSignal.timeout(REMOTE_TIMEOUT_MS),
     headers: {
       'Authorization': 'Bearer ' + process.env.OPENAI_API_KEY,
       'Content-Type': 'application/json'
@@ -202,13 +204,14 @@ async function analyzeWithOpenAI(image, allergens) {
 async function analyzeWithNvidia(image, allergens) {
   var apiResponse = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
     method: 'POST',
+    signal: AbortSignal.timeout(REMOTE_TIMEOUT_MS),
     headers: {
       'Authorization': 'Bearer ' + process.env.NVIDIA_API_KEY,
       'Content-Type': 'application/json',
       'Accept': 'application/json'
     },
     body: JSON.stringify({
-      model: process.env.NVIDIA_MODEL || 'meta/llama-3.2-90b-vision-instruct',
+      model: process.env.NVIDIA_MODEL || 'meta/llama-3.2-11b-vision-instruct',
       temperature: 0.1,
       max_tokens: 2400,
       stream: false,
@@ -246,6 +249,11 @@ async function analyzeMenu(image, allergens) {
     return provider === 'nvidia' ? await analyzeWithNvidia(image, allergens) : await analyzeWithOpenAI(image, allergens);
   } catch (error) {
     if (error.status) throw error;
+    if (error.name === 'TimeoutError' || error.name === 'AbortError') {
+      var timeoutError = new Error('The analysis service took too long to respond. Please retry the scan.');
+      timeoutError.status = 504;
+      throw timeoutError;
+    }
     var outputError = new Error('The analysis returned an unreadable result. Please retry with a clearer image.');
     outputError.status = 502;
     throw outputError;
