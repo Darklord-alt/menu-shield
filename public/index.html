@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Screen a restaurant menu for stated food allergens.">
+    <title>Menu Shield — menu allergy screening</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <main class="page-shell">
+      <header class="hero">
+        <a class="brand" href="/" aria-label="Menu Shield home"><span aria-hidden="true">✦</span> Menu Shield</a>
+        <p class="eyebrow">A clearer first pass at a complicated menu.</p>
+        <h1>See what deserves<br><em>a second look.</em></h1>
+        <p class="hero-copy">Upload a menu photo, name your allergens, and get a clear list of dishes to confirm with the restaurant.</p>
+      </header>
+
+      <section class="notice" aria-label="Important safety note">
+        <span aria-hidden="true">!</span>
+        <p><strong>Screening aid only.</strong> Menu Shield reads menu text; it cannot verify recipes, substitutions, or cross-contact. Always confirm with restaurant staff before ordering.</p>
+      </section>
+
+      <section class="workspace" aria-label="Menu scanner">
+        <div class="step-card upload-card">
+          <div class="step-label"><span>01</span> Add a menu</div>
+          <label id="drop-zone" class="drop-zone" for="menu-image">
+            <input id="menu-image" type="file" accept="image/png,image/jpeg,image/webp" hidden>
+            <div id="upload-prompt">
+              <span class="upload-icon" aria-hidden="true">↑</span>
+              <strong>Drop in a menu photo</strong>
+              <small>or select a PNG, JPG, or WebP</small>
+            </div>
+            <img id="image-preview" alt="Selected menu preview" hidden>
+          </label>
+          <button id="remove-image" class="quiet-button" type="button" hidden>Remove photo</button>
+        </div>
+
+        <div class="step-card allergens-card">
+          <div class="step-label"><span>02</span> Your allergens</div>
+          <p class="card-copy">Add ingredients you need to avoid. Nothing is saved after this browser session.</p>
+          <form id="allergen-form" class="allergen-form">
+            <label class="sr-only" for="allergen-input">Add an allergen</label>
+            <input id="allergen-input" maxlength="80" placeholder="e.g. peanuts" autocomplete="off">
+            <button type="submit">Add</button>
+          </form>
+          <div id="allergen-chips" class="chips" aria-live="polite"></div>
+          <div class="quick-add" aria-label="Common allergens">
+            <span>Quick add</span>
+            <button type="button" data-add="peanuts">Peanuts</button>
+            <button type="button" data-add="tree nuts">Tree nuts</button>
+            <button type="button" data-add="milk">Milk</button>
+            <button type="button" data-add="egg">Egg</button>
+            <button type="button" data-add="wheat">Wheat</button>
+            <button type="button" data-add="shellfish">Shellfish</button>
+          </div>
+        </div>
+
+        <div class="scan-actions">
+          <button id="scan-button" class="scan-button" type="button" disabled>Scan menu <span aria-hidden="true">→</span></button>
+          <button id="demo-button" class="demo-button" type="button">Try the demo menu</button>
+          <p id="scan-status" class="scan-status" aria-live="polite"></p>
+        </div>
+      </section>
+
+      <section id="results" class="results" aria-live="polite" hidden>
+        <div class="results-heading">
+          <div>
+            <p class="eyebrow">Your scan</p>
+            <h2 id="results-title">Menu results</h2>
+          </div>
+          <button id="new-scan" class="quiet-button" type="button">Start over</button>
+        </div>
+        <p id="results-limitations" class="results-note"></p>
+        <div id="summary-bar" class="summary-bar"></div>
+        <div id="dish-list" class="dish-list"></div>
+      </section>
+
+      <footer>Made for the first question, not the final medical decision.</footer>
+    </main>
+    <script src="/app.js" defer></script>
+  </body>
+</html>
