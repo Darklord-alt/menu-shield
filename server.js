@@ -134,6 +134,10 @@ function extractionPrompt(allergens) {
   ].join(' ');
 }
 
+function nvidiaExtractionPrompt(allergens) {
+  return extractionPrompt(allergens) + ' Return exactly one valid JSON object with no Markdown, code fences, or commentary. It must match this JSON Schema: ' + JSON.stringify(schema());
+}
+
 function extractOutputText(responsePayload) {
   if (typeof responsePayload.output_text === 'string') return responsePayload.output_text;
   var output = Array.isArray(responsePayload.output) ? responsePayload.output : [];
@@ -146,13 +150,18 @@ function extractOutputText(responsePayload) {
   return parts.join('\n');
 }
 
-async function analyzeMenu(image, allergens) {
-  if (!process.env.OPENAI_API_KEY) {
-    var missingKey = new Error('Menu Shield needs OPENAI_API_KEY in your local environment before it can analyze a photo.');
-    missingKey.status = 503;
-    throw missingKey;
-  }
+function configuredProvider() {
+  if (process.env.NVIDIA_API_KEY) return 'nvidia';
+  if (process.env.OPENAI_API_KEY) return 'openai';
+  return null;
+}
 
+function parseAnalysis(text) {
+  var cleaned = String(text || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
+  return JSON.parse(cleaned);
+}
+
+async function analyzeWithOpenAI(image, allergens) {
   var apiResponse = await fetch('https://api.openai.com/v1/responses', {
     method: 'POST',
     headers: {
@@ -187,10 +196,56 @@ async function analyzeMenu(image, allergens) {
     throw apiError;
   }
 
-  var outputText = extractOutputText(JSON.parse(responseText));
+  return parseAnalysis(extractOutputText(JSON.parse(responseText)));
+}
+
+async function analyzeWithNvidia(image, allergens) {
+  var apiResponse = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer ' + process.env.NVIDIA_API_KEY,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    },
+    body: JSON.stringify({
+      model: process.env.NVIDIA_MODEL || 'meta/llama-3.2-90b-vision-instruct',
+      temperature: 0.1,
+      max_tokens: 2400,
+      stream: false,
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'text', text: nvidiaExtractionPrompt(allergens) },
+          { type: 'image_url', image_url: { url: image } }
+        ]
+      }]
+    })
+  });
+
+  var responseText = await apiResponse.text();
+  if (!apiResponse.ok) {
+    var apiError = new Error('The analysis service could not complete the scan. ' + responseText.slice(0, 300));
+    apiError.status = apiResponse.status;
+    throw apiError;
+  }
+
+  var payload = JSON.parse(responseText);
+  var content = payload.choices && payload.choices[0] && payload.choices[0].message && payload.choices[0].message.content;
+  return parseAnalysis(content);
+}
+
+async function analyzeMenu(image, allergens) {
+  var provider = configuredProvider();
+  if (!provider) {
+    var missingKey = new Error('Menu Shield needs an OpenAI or NVIDIA API key in its local environment before it can analyze a photo.');
+    missingKey.status = 503;
+    throw missingKey;
+  }
+
   try {
-    return JSON.parse(outputText);
+    return provider === 'nvidia' ? await analyzeWithNvidia(image, allergens) : await analyzeWithOpenAI(image, allergens);
   } catch (error) {
+    if (error.status) throw error;
     var outputError = new Error('The analysis returned an unreadable result. Please retry with a clearer image.');
     outputError.status = 502;
     throw outputError;
@@ -220,7 +275,7 @@ function serveStatic(request, response) {
 function createServer() {
   return http.createServer(async function (request, response) {
     if (request.method === 'GET' && request.url === '/api/health') {
-      json(response, 200, { configured: Boolean(process.env.OPENAI_API_KEY) });
+      json(response, 200, { configured: Boolean(configuredProvider()), provider: configuredProvider() });
       return;
     }
     if (request.method === 'POST' && request.url === '/api/analyze') {
