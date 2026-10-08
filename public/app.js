@@ -23,7 +23,7 @@
   function renderAllergens() {
     byId('allergen-count').textContent = state.allergens.length ? state.allergens.length + ' allergen' + (state.allergens.length === 1 ? '' : 's') + ' selected — all included in the scan' : 'No allergens selected';
     document.querySelectorAll('[data-add]').forEach(function (button) {
-      button.setAttribute('aria-pressed', String(state.allergens.indexOf(button.dataset.add) !== -1));
+      button.checked = state.allergens.indexOf(button.dataset.add) !== -1;
     });
     byId('allergen-chips').innerHTML = state.allergens.map(function (allergen) {
       return '<span class="chip">' + escapeHtml(titleCase(allergen)) + '<button type="button" data-remove="' + escapeHtml(allergen) + '" aria-label="Remove ' + escapeHtml(allergen) + '">×</button></span>';
@@ -73,14 +73,14 @@
     reader.onload = function () {
       var decoded = new Image();
       decoded.onload = function () {
-      var scale = Math.min(1, 1600 / Math.max(decoded.width, decoded.height));
+      var scale = Math.min(1, 2560 / Math.max(decoded.width, decoded.height));
       var canvas = document.createElement('canvas');
       canvas.width = Math.max(1, Math.round(decoded.width * scale));
       canvas.height = Math.max(1, Math.round(decoded.height * scale));
       var context = canvas.getContext('2d');
       context.fillStyle = '#fff'; context.fillRect(0, 0, canvas.width, canvas.height);
       context.drawImage(decoded, 0, 0, canvas.width, canvas.height);
-      state.image = canvas.toDataURL('image/jpeg', 0.9);
+      state.image = scale === 1 && file.size <= 2 * 1024 * 1024 ? reader.result : canvas.toDataURL('image/jpeg', 0.94);
       byId('image-preview').src = state.image;
       byId('image-preview').hidden = false;
       byId('upload-prompt').hidden = true;
@@ -152,8 +152,8 @@
   }
 
   byId('allergen-form').addEventListener('submit', function (event) { event.preventDefault(); addAllergen(byId('allergen-input').value); });
-  document.querySelectorAll('[data-add]').forEach(function (button) { button.addEventListener('click', function () {
-    if (state.allergens.indexOf(button.dataset.add) !== -1) {
+  document.querySelectorAll('[data-add]').forEach(function (button) { button.addEventListener('change', function () {
+    if (!button.checked) {
       state.allergens = state.allergens.filter(function (item) { return item !== button.dataset.add; });
       renderAllergens(); renderScanButton();
     } else addAllergen(button.dataset.add);

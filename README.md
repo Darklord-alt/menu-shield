@@ -30,7 +30,7 @@ npm run check
 
 Run `npm test` for local regression checks. On Windows, `./test/live-scan.ps1` creates a readable three-dish menu in memory and sends it through the running app. This live check uses the configured provider and may consume API quota.
 
-Photo scans resize large uploads to 1600 pixels on the longest edge and allow up to two minutes for inference. NVIDIA requests use JSON output mode; malformed or truncated results are rejected. Successful extraction does not guarantee correct allergen identification—confirm ingredients with restaurant staff.
+Photo scans preserve originals up to 2560 pixels and 2 MB; larger uploads are resized to at most 2560 pixels with high-quality JPEG encoding. Allow up to two minutes for inference. Small print on dense menus may need separate column or section photos. NVIDIA requests use JSON output mode; malformed or truncated results are rejected. Successful extraction does not guarantee complete transcription or correct allergen identification—confirm ingredients with restaurant staff.
 
 ## Project documents
 

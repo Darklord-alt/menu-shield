@@ -128,7 +128,8 @@ function extractionPrompt(allergens) {
     'You are reading a restaurant menu to help a diner screen dishes against stated allergens.',
     'Return only the requested JSON schema. Do not provide medical advice or claim any dish is safe.',
     'The diner wants to avoid these allergens: ' + allergens.join(', ') + '.',
-    'Extract every readable dish. For each requested allergen, include a match only when the menu text supports a likely or possible match.',
+    'Read every column and section from top to bottom. Include every readable dish, even dishes with no allergen matches; do not return only examples or summarize the list. Include sides, desserts, and drinks when listed. In limitations, explicitly identify unreadable sections or suspected omissions. Never invent unreadable dish names.',
+    'For each requested allergen separately, include a match only when the menu text supports a likely or possible match.',
     'Use likely for an explicitly named ingredient or standard component strongly identified by the dish text.',
     'Use possible when the dish text reasonably suggests the ingredient but is ambiguous. Never infer undisclosed ingredients as fact.',
     'In evidence, quote or paraphrase the exact menu wording that led to the result. In limitations, explain that recipes, substitutions, and cross-contact must be confirmed with staff.'
@@ -335,6 +336,7 @@ function serveStatic(request, response) {
       return;
     }
     response.writeHead(200, {
+      'Cache-Control': 'no-store',
       'Content-Type': MIME_TYPES[path.extname(filename).toLowerCase()] || 'application/octet-stream',
       'X-Content-Type-Options': 'nosniff'
     });

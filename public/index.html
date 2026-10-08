@@ -34,6 +34,7 @@
             <img id="image-preview" alt="Selected menu preview" hidden>
           </label>
           <button id="remove-image" class="quiet-button" type="button" hidden>Remove photo</button>
+          <p class="selection-note">For small print, upload a close-up of one menu column or section. Check the number of dishes read against your photo.</p>
         </div>
 
         <div class="step-card allergens-card">
@@ -48,12 +49,15 @@
           <p id="allergen-count" class="selection-note" aria-live="polite">No allergens selected</p>
           <div class="quick-add" aria-label="Common allergens">
             <span>Quick add</span>
-            <button type="button" data-add="peanuts">Peanuts</button>
-            <button type="button" data-add="tree nuts">Tree nuts</button>
-            <button type="button" data-add="milk">Milk</button>
-            <button type="button" data-add="egg">Egg</button>
-            <button type="button" data-add="wheat">Wheat</button>
-            <button type="button" data-add="shellfish">Shellfish</button>
+            <label><input type="checkbox" data-add="peanuts"> Peanuts</label>
+            <label><input type="checkbox" data-add="tree nuts"> Tree nuts</label>
+            <label><input type="checkbox" data-add="milk"> Milk</label>
+            <label><input type="checkbox" data-add="egg"> Egg</label>
+            <label><input type="checkbox" data-add="wheat"> Wheat</label>
+            <label><input type="checkbox" data-add="shellfish"> Shellfish</label>
+            <label><input type="checkbox" data-add="soy"> Soy</label>
+            <label><input type="checkbox" data-add="sesame"> Sesame</label>
+            <label><input type="checkbox" data-add="fish"> Fish</label>
           </div>
         </div>
 
