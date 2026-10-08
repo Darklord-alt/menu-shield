@@ -85,7 +85,7 @@
       byId('image-preview').hidden = false;
       byId('upload-prompt').hidden = true;
       byId('remove-image').hidden = false;
-      setStatus(''); renderScanButton();
+      setStatus(Math.min(decoded.width, decoded.height) < 700 ? 'Low-resolution photo: small menu text may be unreadable. Use the original photo or close-ups for complete coverage.' : ''); renderScanButton();
       };
       decoded.onerror = function () { setStatus('This image could not be opened. Try a JPG or PNG.', 'error'); };
       decoded.src = reader.result;
@@ -95,7 +95,7 @@
 
   function relevantMatches(dish) {
     return (dish.matches || []).filter(function (match) {
-      return match.risk === 'likely' || match.risk === 'possible';
+      return match.risk === 'likely' || match.risk === 'possible' || match.risk === 'unknown';
     });
   }
 
@@ -104,12 +104,16 @@
     var dishes = Array.isArray(result.dishes) ? result.dishes : [];
     var flagged = dishes.filter(function (dish) { return relevantMatches(dish).length; });
     byId('results-title').textContent = result.menu_title || 'Menu results';
-    byId('results-limitations').textContent = result.limitations || 'Confirm recipes and cross-contact with restaurant staff.';
+    byId('results-limitations').textContent = (result.coverage_verified === false ? 'Partial coverage possible: ' + dishes.length + ' items were returned. This does not confirm that every menu item was read. Compare with the original photo. ' : '') + (result.limitations || 'Confirm recipes and cross-contact with restaurant staff.');
     byId('summary-bar').innerHTML = '<div><strong>' + dishes.length + '</strong><span>dishes read</span></div><div class="summary-alert"><strong>' + flagged.length + '</strong><span>need a staff check</span></div><div><strong>' + (dishes.length - flagged.length) + '</strong><span>with no stated match</span></div>';
     byId('dish-list').innerHTML = dishes.map(function (dish) {
-      var matches = relevantMatches(dish);
+      var requested = result.requested_allergens || scannedAllergens || [];
+      var matches = requested.map(function (allergen) {
+        return (dish.matches || []).find(function (match) { return match.allergen.toLowerCase() === allergen.toLowerCase(); }) || {allergen:allergen, risk:'unknown', evidence:'No assessment was returned for this allergen. Confirm with staff.'};
+      });
       var matchHtml = matches.length ? matches.map(function (match) {
-        return '<li class="' + riskClass(match.risk) + '"><span>' + escapeHtml(match.risk === 'likely' ? 'Likely match' : 'Possible match') + '</span><strong>' + escapeHtml(titleCase(match.allergen)) + '</strong><p>' + escapeHtml(match.evidence) + '</p></li>';
+        var label = {likely:'Likely match',possible:'Possible match',not_listed:'Not identified in text',unknown:'Not determined'}[match.risk] || 'Not determined';
+        return '<li class="' + riskClass(match.risk) + '"><span>' + escapeHtml(label) + '</span><strong>' + escapeHtml(titleCase(match.allergen)) + '</strong><p>' + escapeHtml(match.evidence) + (match.risk === 'not_listed' ? ' This does not establish absence or safety.' : '') + '</p></li>';
       }).join('') : '<li class="clear"><span>No stated match</span><p>No requested allergen was identified in the readable description. This is not a safety guarantee.</p></li>';
       return '<article class="dish ' + (matches.length ? 'dish-flagged' : '') + '"><div class="dish-title"><div><h3>' + escapeHtml(dish.name) + '</h3><p>' + escapeHtml(dish.description || 'No description readable') + '</p></div><span class="uncertainty">Text confidence: ' + escapeHtml(dish.uncertainty || 'unknown') + '</span></div><ul class="match-list">' + matchHtml + '</ul></article>';
     }).join('') || '<p class="empty-result">No dishes could be read. Try a brighter, straighter photo of the menu.</p>';
@@ -136,8 +140,8 @@
     byId('results').hidden = true;
     var button = byId('scan-button');
     button.disabled = true; button.innerHTML = 'Reading menu <span class="spinner" aria-hidden="true"></span>';
-    setStatus('Scanning the menu text… This can take up to two minutes.');
-    var slowTimer = setTimeout(function () { setStatus('Still reading the photo… Large menus take longer. Keep this page open.'); }, 30000);
+    setStatus('Reading the menu and assessing each selected allergen. This can take up to two minutes.');
+    var slowTimer = setTimeout(function () { setStatus('Still processing the photo… Keep this page open. Missing assessments will be marked Not determined.'); }, 30000);
     try {
       var response = await fetch('/api/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ image: state.image, allergens: scannedAllergens }) });
       var payload = await response.json();

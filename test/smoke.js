@@ -5,6 +5,10 @@ var serverModule = require('../server');
 var createServer = serverModule.createServer;
 
 async function run() {
+  var assessment = serverModule.completeAssessments({dishes:Array.from({length:13}, function (_, index) { return {name:'Item ' + index,matches:[{allergen:'Milk',risk:'possible',evidence:'Ask about recipe'}]}; })}, ['milk','egg']);
+  assert.equal(assessment.dishes.length, 13);
+  assessment.dishes.forEach(function (dish) { assert.equal(dish.matches.length, 2); assert.equal(dish.matches[1].allergen, 'egg'); assert.equal(dish.matches[1].risk, 'unknown'); });
+  assert.equal(assessment.coverage_verified, false);
   assert.throws(function () { serverModule.validateAnalysis({menu_title:'Menu', limitations:'Ask staff', dishes:[{name:'Pasta'}]}); }, /incomplete dish/);
   assert.throws(function () { serverModule.parseAnalysis('{"dishes":['); });
   assert.throws(function () { serverModule.validateAnalysis({menu_title:'Menu',limitations:'Ask staff',dishes:[{name:'Pasta',description:'cheese',uncertainty:'low',matches:[{allergen:'milk',evidence:'cheese',risk:'safe'}]}]}); }, /invalid allergen/);
