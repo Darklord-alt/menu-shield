@@ -6,14 +6,26 @@
     <meta name="description" content="Screen a restaurant menu for stated food allergens.">
     <title>Menu Shield — menu allergy screening</title>
     <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/theme.css">
   </head>
   <body>
     <main class="page-shell">
-      <header class="hero">
+      <nav class="topbar" aria-label="Main navigation">
         <a class="brand" href="/" aria-label="Menu Shield home"><span aria-hidden="true">✦</span> Menu Shield</a>
-        <p class="eyebrow">A clearer first pass at a complicated menu.</p>
-        <h1>See what deserves<br><em>a second look.</em></h1>
+        <a class="nav-link" href="#scanner">Scan a menu <span aria-hidden="true">↗</span></a>
+      </nav>
+      <header class="hero">
+        <div class="hero-content">
+        <p class="eyebrow"><span class="status-dot" aria-hidden="true"></span> A little clarity before you order</p>
+        <h1>Good food.<br><em>Better questions.</em></h1>
         <p class="hero-copy">Upload a menu photo, name your allergens, and get a clear list of dishes to confirm with the restaurant.</p>
+        <div class="hero-steps" aria-label="How it works"><span>01 &nbsp; Upload</span><span aria-hidden="true">→</span><span>02 &nbsp; Screen</span><span aria-hidden="true">→</span><span>03 &nbsp; Ask</span></div>
+        </div>
+        <div class="hero-art" aria-hidden="true">
+          <div class="orbit"></div>
+          <div class="menu-illustration"><div class="illustration-title">THE MENU <span>✦</span></div><div class="menu-rule"></div><div class="menu-line long"></div><div class="menu-line"></div><div class="menu-highlight"><span>Look a little closer</span><b>↗</b></div><div class="menu-line long"></div><div class="menu-line"></div><div class="menu-rule"></div><div class="illustration-footer">A question worth asking.</div></div>
+          <div class="art-caption">MORE CLARITY. LESS GUESSWORK.</div>
+        </div>
       </header>
 
       <section class="notice" aria-label="Important safety note">
@@ -21,7 +33,7 @@
         <p><strong>Screening aid only.</strong> Menu Shield reads menu text; it cannot verify recipes, substitutions, or cross-contact. Always confirm with restaurant staff before ordering.</p>
       </section>
 
-      <section class="workspace" aria-label="Menu scanner">
+      <section id="scanner" class="workspace" aria-label="Menu scanner">
         <div class="step-card upload-card">
           <div class="step-label"><span>01</span> Add a menu</div>
           <label id="drop-zone" class="drop-zone" for="menu-image">
